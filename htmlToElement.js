@@ -1,26 +1,29 @@
-import React from 'react';
-import {StyleSheet, Text} from 'react-native';
-import htmlparser from 'htmlparser2-without-node-native';
-import entities from 'entities';
+import React from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import { SelectableText } from "@astrocoders/react-native-selectable-text";
+import htmlparser from "htmlparser2-without-node-native";
+import entities from "entities";
 
-import AutoSizedImage from './AutoSizedImage';
+import AutoSizedImage from "./AutoSizedImage";
 
 const defaultOpts = {
-  lineBreak: '\n',
-  paragraphBreak: '\n\n',
-  bullet: '\u2022 ',
-  TextComponent: Text,
+  lineBreak: "\n",
+  paragraphBreak: "\n\n",
+  bullet: "\u2022 ",
+  TextComponent: SelectableText,
   textComponentProps: null,
-  NodeComponent: Text,
+  NodeComponent: View,
   nodeComponentProps: null,
 };
 
-const Img = props => {
+const Img = (props) => {
   const width =
-    parseInt(props.attribs['width'], 10) || parseInt(props.attribs['data-width'], 10) || 0;
+    parseInt(props.attribs["width"], 10) ||
+    parseInt(props.attribs["data-width"], 10) ||
+    0;
   const height =
-    parseInt(props.attribs['height'], 10) ||
-    parseInt(props.attribs['data-height'], 10) ||
+    parseInt(props.attribs["height"], 10) ||
+    parseInt(props.attribs["data-height"], 10) ||
     0;
 
   const imgStyle = {
@@ -46,7 +49,7 @@ export default function htmlToElement(rawHtml, customOpts = {}, done) {
     if (!parent) return null;
     const style = StyleSheet.flatten(opts.styles[parent.name]) || {};
     const parentStyle = inheritedStyle(parent.parent) || {};
-    return {...parentStyle, ...style};
+    return { ...parentStyle, ...style };
   }
 
   function domToElement(dom, parent) {
@@ -57,20 +60,16 @@ export default function htmlToElement(rawHtml, customOpts = {}, done) {
 
     return dom.map((node, index, list) => {
       if (renderNode) {
-        const rendered = renderNode(
-          node,
-          index,
-          list,
-          parent,
-          domToElement
-        );
+        const rendered = renderNode(node, index, list, parent, domToElement);
         if (rendered || rendered === null) return rendered;
       }
 
-      const {TextComponent} = opts;
+      const { TextComponent } = opts;
 
-      if (node.type === 'text') {
-        const defaultStyle = opts.textComponentProps ? opts.textComponentProps.style : null;
+      if (node.type === "text") {
+        const defaultStyle = opts.textComponentProps
+          ? opts.textComponentProps.style
+          : null;
         const customStyle = inheritedStyle(parent);
 
         return (
@@ -78,20 +77,21 @@ export default function htmlToElement(rawHtml, customOpts = {}, done) {
             {...opts.textComponentProps}
             key={index}
             style={[defaultStyle, customStyle]}
-          >
-            {entities.decodeHTML(node.data)}
-          </TextComponent>
+            value={entities.decodeHTML(node.data)}
+            menuItems={["Translate"]}
+            onSelection={({ content }) => Alert.alert(content)}
+          />
         );
       }
 
-      if (node.type === 'tag') {
-        if (node.name === 'img') {
+      if (node.type === "tag") {
+        if (node.name === "img") {
           return <Img key={index} attribs={node.attribs} />;
         }
 
         let linkPressHandler = null;
         let linkLongPressHandler = null;
-        if (node.name === 'a' && node.attribs && node.attribs.href) {
+        if (node.name === "a" && node.attribs && node.attribs.href) {
           linkPressHandler = () =>
             opts.linkHandler(entities.decodeHTML(node.attribs.href));
           if (opts.linkLongPressHandler) {
@@ -104,67 +104,82 @@ export default function htmlToElement(rawHtml, customOpts = {}, done) {
         let linebreakAfter = null;
         if (opts.addLineBreaks) {
           switch (node.name) {
-          case 'pre':
-            linebreakBefore = opts.lineBreak;
-            break;
-          case 'p':
-            if (index < list.length - 1) {
-              linebreakAfter = opts.paragraphBreak;
-            }
-            break;
-          case 'br':
-          case 'h1':
-          case 'h2':
-          case 'h3':
-          case 'h4':
-          case 'h5':
-            linebreakAfter = opts.lineBreak;
-            break;
+            case "pre":
+              linebreakBefore = opts.lineBreak;
+              break;
+            case "p":
+              if (index < list.length - 1) {
+                linebreakAfter = opts.paragraphBreak;
+              }
+              break;
+            case "br":
+            case "h1":
+            case "h2":
+            case "h3":
+            case "h4":
+            case "h5":
+              linebreakAfter = opts.lineBreak;
+              break;
           }
         }
 
         let listItemPrefix = null;
-        if (node.name === 'li') {
-          const defaultStyle = opts.textComponentProps ? opts.textComponentProps.style : null;
+        if (node.name === "li") {
+          const defaultStyle = opts.textComponentProps
+            ? opts.textComponentProps.style
+            : null;
           const customStyle = inheritedStyle(parent);
 
-          if(!parent){
+          if (!parent) {
             listItemPrefix = null;
-          } else if (parent.name === 'ol') {
-            listItemPrefix = (<TextComponent style={[defaultStyle, customStyle]}>
-              {`${orderedListCounter++}. `}
-            </TextComponent>);
-          } else if (parent.name === 'ul') {
-            listItemPrefix = (<TextComponent style={[defaultStyle, customStyle]}>
-              {opts.bullet}
-            </TextComponent>);
+          } else if (parent.name === "ol") {
+            listItemPrefix = (
+              <TextComponent
+                style={[defaultStyle, customStyle]}
+                value={`${orderedListCounter++}. `}
+              />
+            );
+          } else if (parent.name === "ul") {
+            listItemPrefix = (
+              <TextComponent
+                style={[defaultStyle, customStyle]}
+                value={opts.bullet}
+              />
+            );
           }
           if (opts.addLineBreaks && index < list.length - 1) {
             linebreakAfter = opts.lineBreak;
           }
         }
 
-        const {NodeComponent, styles} = opts;
+        const { NodeComponent, styles } = opts;
+
+        console.log(
+          linebreakBefore,
+          listItemPrefix,
+          domToElement(node.children, node),
+          linebreakAfter
+        );
 
         return (
           <NodeComponent
             {...opts.nodeComponentProps}
             key={index}
-            onPress={linkPressHandler}
+            // onPress={linkPressHandler}
             style={!node.parent ? styles[node.name] : null}
-            onLongPress={linkLongPressHandler}
+            // onLongPress={linkLongPressHandler}
           >
-            {linebreakBefore}
-            {listItemPrefix}
+            {/* {linebreakBefore}
+            {listItemPrefix} */}
             {domToElement(node.children, node)}
-            {linebreakAfter}
+            {/* {linebreakAfter} */}
           </NodeComponent>
         );
       }
     });
   }
 
-  const handler = new htmlparser.DomHandler(function(err, dom) {
+  const handler = new htmlparser.DomHandler(function (err, dom) {
     if (err) done(err);
     done(null, domToElement(dom));
   });
