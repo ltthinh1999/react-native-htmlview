@@ -154,13 +154,6 @@ export default function htmlToElement(rawHtml, customOpts = {}, done) {
 
         const { NodeComponent, styles } = opts;
 
-        console.log(
-          linebreakBefore,
-          listItemPrefix,
-          domToElement(node.children, node),
-          linebreakAfter
-        );
-
         return (
           <NodeComponent
             {...opts.nodeComponentProps}
